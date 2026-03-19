@@ -2,7 +2,7 @@ module.exports = {
   config: {
     name: "adminmention",
     version: "1.3.2",
-    author: "MOHAMMAD AKASH",
+    author: "〲MAMUNツ࿐ T.T　o.O",
     countDown: 0,
     role: 0,
     shortDescription: "Replies angrily when someone tags admins",
@@ -13,7 +13,7 @@ module.exports = {
   onStart: async function () {},
 
   onChat: async function ({ event, message }) {
-    const adminIDs = ["61587384024459", "61578333931536", "61585074875880"].map(String);
+    const adminIDs = ["61587384024459", "61578333931536", "61564643127325"].map(String);
 
     // Skip if sender is admin
     if (adminIDs.includes(String(event.senderID))) return;
