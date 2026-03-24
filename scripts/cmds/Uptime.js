@@ -29,21 +29,23 @@ module.exports = {
     const ping = Date.now() - start;
 
     const msg = `
-╔══❀𝙋𝙊𝙊𝙆𝙄𝙀 ᥫ❀══╗
+╔══ ♡┋ 𝙋𝙊𝙊𝙆𝙄𝙀 ᥫ᭡🎀🙂❀══╗
 
 🤖 Bot:  ♡┋ 𝙋𝙊𝙊𝙆𝙄𝙀 ᥫ᭡🎀🙂
+
 👑 Owner: 〲MAMUNツ࿐ T.T　o.O
 
 ⏰ Uptime: ${d}d ${h}h ${m}m ${s}s
+
 ⚡ Ping: ${ping} ms
 
 💻 CPU: ${os.cpus()[0].model}
+
 💾 RAM: ${freeMem}GB / ${totalMem}GB
+
 📡 Platform: ${os.platform()}
 
-🟢 Status: Running 24/7
-
-╚══❀🌼❀══╝
+╚══ ♡┋ 𝙋𝙊𝙊𝙆𝙄𝙀 ᥫ᭡🎀🙂❀══╝
 `;
 
     message.reply(msg);
