@@ -140,7 +140,7 @@ const categoryEmoji = (category) => {
 
 module.exports = {
   config: {
-    name: "help2",
+    name: "help",
     version: "2.4",
     author: "×᷼×ＭＡ☂Ｍ☂ＵＮ☆",
     role: 0,
@@ -255,7 +255,7 @@ ${usage.split('\n').map(line => `┋➥ ${line}`).join('\n')}
 ┋➥ 𝗧𝗼𝘁𝗮𝗹 𝗖𝗮𝘁𝗲𝗴𝗼𝗿𝗶𝗲𝘀: ${sortedCategories.length}
 ┋➥ 𝗔𝗹𝗹 𝗰𝗼𝗺𝗺𝗮𝗻𝗱𝘀 𝗶𝗻 𝗼𝗻𝗲 𝗽𝗮𝗴𝗲
 ┍━━━[ 🚀 𝗜𝗡𝗙𝗢 ]━━━◊
-┋➥ 𝗪𝗲𝗹𝗰𝗼𝗺𝗲 ✰𝗣𝗢𝗢𝗞𝗜𝗘☆𝘽𝙊𝙏!
+┋➥ 𝗪𝗲𝗹𝗰𝗼𝗺𝗲 parsonal bot!
 ┋➥ 𝗣𝗿𝗲𝗳𝗶𝘅: [ ${prefix} ]
 ┋➥ 𝗗𝗲𝘃𝗲𝗹𝗼𝗽𝗲𝗿: ×᷼×ＭＡ☂Ｍ☂ＵＮ☆
 ┋➥ 𝗨𝘀𝗲: ${prefix}𝗵𝗲𝗹𝗽 <𝗰𝗼𝗺𝗺𝗮𝗻𝗱>
@@ -264,7 +264,7 @@ ${usage.split('\n').map(line => `┋➥ ${line}`).join('\n')}
     try {
       await message.reply({
         body: msg,
-        attachment: await global.utils.getStreamFromURL("https://i.ibb.co/5X9T2dDN/image0.gif")
+        attachment: await global.utils.getStreamFromURL("https://i.imgur.com/VUggZe1.jpeg")
       });
     } catch (error) {
       console.log("GIF attachment failed, sending text only:", error);
