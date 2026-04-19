@@ -1,93 +1,143 @@
-const fs = require("fs-extra");
-const path = require("path");
 const axios = require("axios");
+const fs = require('fs-extra');
+const path = require('path');
+
+const baseApiUrl = async () => {
+        const base = await axios.get(`https://raw.githubusercontent.com/mahmudx7/HINATA/main/baseApiUrl.json`);
+        return base.data.mahmud;
+};
 
 module.exports = {
-config: {
-name: "song",
-version: "2.3.0",
-author: "Milon",
-countDown: 5,
-role: 0,
-description: "Search and download songs without prefix",
-category: "media",
-usePrefix: false // এটিও রাখা হলো যেন হেল্প লিস্টে সমস্যা না হয়
-},
+        config: {
+                name: "song",
+                version: "1.7",
+                author: "MahMUD",
+                countDown: 5,
+                role: 0,
+                description: {
+                        bn: "ইউটিউব থেকে গান ডাউনলোড করুন",
+                        en: "Download songs/audio from YouTube",
+                        vi: "Tải nhạc từ YouTube"
+                },
+                category: "music",
+                guide: {
+                        bn: '   {pn} [গানের নাম বা লিঙ্ক]\n   উদাহরণ: {pn} tui chinli na amay',
+                        en: '   {pn} [song name or link]\n   Example: {pn} stay justin bieber',
+                        vi: '   {pn} [tên bài hát hoặc link]\n   Ví dụ: {pn} see you again'
+                }
+        },
 
-onChat: async function ({ api, event, message, args }) {
-// মেসেজ যদি 'song' দিয়ে শুরু হয়
-if (event.body && event.body.toLowerCase().startsWith("song")) {
-const input = event.body.split(/\s+/); // মেসেজটিকে স্পেস দিয়ে ভাগ করা
-input.shift(); // 'song' শব্দটিকে বাদ দেওয়া
-const query = input.join(" "); // বাকিটা হলো গানের নাম
+        langs: {
+                bn: {
+                        error: "❌ | সমস্যা হয়েছে: %1",
+                        noResult: "⭕ | দুঃখিত বেবি, \"%1\" এর জন্য কিছু খুঁজে পাইনি।",
+                        choose: "গানের তালিকা:\n\n%1\nগানের নাম্বার লিখে রিপ্লাই দিন।",
+                        success: "✅ | ডাউনলোড সম্পন্ন: %1"
+                },
+                en: {
+                        error: "❌ | An error occurred: %1",
+                        noResult: "⭕ | No search results match the keyword %1",
+                        choose: "Song Results:\n\n%1\nReply with a number to download.",
+                        success: "✅ | Successfully Downloaded: %1"
+                }
+        },
 
-if (!query) {
-return message.reply("❌ Please provide a song name.\n📌 Example: song Let Me Love You");
-}
+        onStart: async function ({ api, args, message, event, commandName, getLang }) {
+                const authorName = String.fromCharCode(77, 97, 104, 77, 85, 68); 
+                if (this.config.author !== authorName) {
+                        return api.sendMessage("You are not authorized to change the author name.", event.threadID, event.messageID);
+                }
 
-const searchingMessage = await message.reply(`🔍 Searching for "${query}"...\n⏳ Please wait...`);
+                const { threadID, messageID, senderID } = event;
+                const input = args.join(" ");
 
-try {
-// Search API
-const searchResponse = await axios.get(
-`https://betadash-search-download.vercel.app/yt?search=${encodeURIComponent(query)}`
-);
-const songData = searchResponse.data[0];
+                if (!input) return api.sendMessage("• Please provide a song name or send link.", threadID, messageID);
 
-if (!songData || !songData.url) {
-return message.reply("⚠️ No results found. Try another song.");
-}
+                const apiUrl = await baseApiUrl();
+                const checkurl = /^(?:https?:\/\/)?(?:m\.|www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))((\w|-){11})(?:\S+)?$/;
 
-const ytUrl = songData.url;
-const title = songData.title;
-const channelName = songData.channelName || "Unknown";
+                if (checkurl.test(input)) {
+                        const videoID = input.match(checkurl)[1];
+                        api.setMessageReaction("⌛", messageID, () => {}, true);
+                        return handleDownload(api, threadID, messageID, videoID, apiUrl, getLang);
+                }
 
-await api.editMessage(`🎶 Found: ${title}\n⬇️ Downloading...`, searchingMessage.messageID);
+                try {
+                        api.setMessageReaction("⏳", messageID, () => {}, true);
+                        const res = await axios.get(`${apiUrl}/api/ytb/search?q=${encodeURIComponent(input)}`);
+                        const results = res.data.results.slice(0, 6);
+                        
+                        if (!results || results.length === 0) return api.sendMessage(getLang("noResult", input), threadID, messageID);
 
-// Download API
-const downloadResponse = await axios.get(
-`https://yt-mp3-imran.vercel.app/api?url=${encodeURIComponent(ytUrl)}`
-);
+                        let msg = "";
+                        const attachments = [];
+                        const cacheDir = path.join(__dirname, 'cache');
+                        if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
 
-const audioUrl = downloadResponse.data.downloadUrl;
-if (!audioUrl) {
-return message.reply("⚠️ Failed to fetch download link.");
-}
+                        for (let i = 0; i < results.length; i++) {
+                                msg += `${i + 1}. ${results[i].title}\nTime: ${results[i].time}\n\n`;
+                                const thumbPath = path.join(cacheDir, `thumb_${senderID}_${Date.now()}_${i}.jpg`);
+                                const thumbRes = await axios.get(results[i].thumbnail, { responseType: 'arraybuffer' });
+                                fs.writeFileSync(thumbPath, Buffer.from(thumbRes.data));
+                                attachments.push(fs.createReadStream(thumbPath));
+                        }
 
-const cachePath = path.join(__dirname, "cache");
-if (!fs.existsSync(cachePath)) fs.mkdirSync(cachePath, { recursive: true });
+                        return api.sendMessage({
+                                body: getLang("choose", msg),
+                                attachment: attachments
+                        }, threadID, (err, info) => {
+                                attachments.forEach(stream => { if (fs.existsSync(stream.path)) fs.unlinkSync(stream.path); });
+                                global.GoatBot.onReply.set(info.messageID, { 
+                                        commandName, 
+                                        author: senderID, 
+                                        results, 
+                                        apiUrl 
+                                });
+                        }, messageID);
 
-const filePath = path.join(cachePath, `song_${Date.now()}.mp3`);
+                } catch (e) {
+                        return api.sendMessage(getLang("error", e.message), threadID, messageID);
+                }
+        },
 
-const response = await axios({
-method: "get",
-url: audioUrl,
-responseType: "stream",
-});
-
-const writer = fs.createWriteStream(filePath);
-response.data.pipe(writer);
-
-writer.on("finish", async () => {
-await message.reply({
-body: `✅ Download Complete!\n🎧 Title: ${title}\n🎤 Channel: ${channelName}`,
-attachment: fs.createReadStream(filePath),
-});
-fs.unlinkSync(filePath);
-});
-
-writer.on("error", (err) => {
-console.error(err);
-message.reply("❌ Error downloading song.");
-});
-
-} catch (err) {
-console.error("❌ Error:", err);
-message.reply("⚠️ Unexpected error occurred.");
-}
-}
-},
-
-// onStart খালি রাখা হলো যেন মেনু বা হেল্প কমান্ডে কোনো সমস্যা না হয়
-onStart: async function () {}
+        onReply: async function ({ event, api, Reply, getLang }) {
+                const { results, apiUrl, author } = Reply;
+                if (event.senderID !== author) return;
+                
+                const choice = parseInt(event.body);
+                if (isNaN(choice) || choice <= 0 || choice > results.length) return;
+                
+                const videoID = results[choice - 1].id;
+                api.unsendMessage(Reply.messageID);
+                api.setMessageReaction("⌛", event.messageID, () => {}, true);
+               
+                await handleDownload(api, event.threadID, event.messageID, videoID, apiUrl, getLang);
+        }
 };
+
+async function handleDownload(api, threadID, messageID, videoID, apiUrl, getLang) {
+        const cacheDir = path.join(__dirname, 'cache');
+        if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+        const filePath = path.join(cacheDir, `music_${Date.now()}.mp3`);
+
+        try {
+                const res = await axios.get(`${apiUrl}/api/ytb/get?id=${videoID}&type=audio`);
+                const { title, downloadLink } = res.data.data;
+                
+                const response = await axios({ url: downloadLink, method: 'GET', responseType: 'stream' });
+                const writer = fs.createWriteStream(filePath);
+                response.data.pipe(writer);
+
+                writer.on('finish', () => {
+                        api.sendMessage({
+                                body: getLang("success", title),
+                                attachment: fs.createReadStream(filePath)
+                        }, threadID, () => { 
+                                api.setMessageReaction("✅", messageID, () => {}, true);
+                                if (fs.existsSync(filePath)) fs.unlinkSync(filePath); 
+                        }, messageID);
+                });
+        } catch (e) {
+                api.sendMessage(getLang("error", "Download failed!"), threadID, messageID);
+        }
+                                                                                             }
