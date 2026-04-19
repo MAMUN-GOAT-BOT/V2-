@@ -6,7 +6,7 @@ module.exports = {
     name: "hot",
     version: "1.0.1",
     role: 2,
-    author: "MOHAMMAD AKASH",
+    author: "𝐌𝐀𝐌𝐔𝐍",
     description: "18+ VIDEO SEND",
     category: "adult",
     usages: "prefix hot",
@@ -117,7 +117,7 @@ module.exports = {
       writer.on("finish", () => {
         api.sendMessage(
           {
-            body: "এই বুকাচুদা ! এতো হেন্ডেল মারলে হবে?🤬",
+            body: "𝐉𝐀 𝐃𝐔𝐒𝐓𝐔 𝐋𝐎𝐉𝐉𝐀 𝐊𝐎𝐑𝐄 🙈",
             attachment: fs.createReadStream(path)
           },
           event.threadID,
