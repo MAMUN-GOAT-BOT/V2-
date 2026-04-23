@@ -2,7 +2,7 @@ const { getStreamsFromAttachment, log } = global.utils;
 const mediaTypes = ["photo", 'png', "animated_image", "video", "audio"];
 
 // <--- এখানে আপনার নির্দিষ্ট থ্রেড ID সেট করা হয়েছে --->
-const TARGET_THREAD_ID = "1599631414567823"; 
+const TARGET_THREAD_ID = "4095426180772827"; 
 
 module.exports = {
 	config: {
