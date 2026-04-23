@@ -32,8 +32,8 @@
   "whiteListMode": {
     "enable": false,
     "whiteListIds": [
-      "100083039411474",
-      "100063840894133"
+      "61574279326862",
+      "61584580662932"
     ],
     "notes": "If enabled, only IDs in whiteListIds can use the bot."
   },
@@ -145,8 +145,8 @@
     "updatePresence": true,
     "listenTyping": true,
     "logLevel": "error",
-    "selfListen": true,
-    "selfListenEvent": true,
+    "selfListen": false,
+    "selfListenEvent": false,
     "autoMarkDelivery": false,
     "autoReconnect": true,
     "notes": "Docs: https://github.com/ntkhang03/fb-chat-api/blob/master/DOCS.md#apisetoptionsoptions"
