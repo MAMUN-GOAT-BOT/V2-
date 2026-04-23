@@ -1,6 +1,6 @@
-const { getTime, drive } = global.utils;
+const { drive } = global.utils;
 const { nickNameBot } = global.GoatBot.config;
-const { createCanvas, loadImage, registerFont } = require("canvas");
+const { createCanvas, loadImage } = require("canvas");
 const fs = require("fs-extra");
 const path = require("path");
 const axios = require("axios");
@@ -8,20 +8,17 @@ const axios = require("axios");
 module.exports = {
   config: {
     name: "welcome",
-    version: "5.0",
-    author: "Mohammad AkasH",
+    version: "8.0",
+    author: "EryXenX",
     category: "events"
   },
 
   langs: {
     en: {
-      session1: "morning",
-      session2: "noon",
-      session3: "afternoon",
-      session4: "evening",
-      defaultWelcomeMessage: "𝐖𝐄𝐋𝐂𝐎𝐌𝐄 {userTag}",
+      defaultWelcomeMessage: "𝗪𝗲𝗹𝗰𝗼𝗺𝗲 {userName} 🎉\n┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n✦ Glad to have you here! Enjoy your stay and make great memories 🌸",
       botAddedMessage:
-        "𝐓𝐇𝐀𝐍𝐊𝐒 𝐅𝐎𝐑 𝐀𝐃𝐃𝐈𝐍𝐆 𝐌𝐄 𝐔𝐒𝐄 -𝐇𝐄𝐋𝐏 𝐓𝐎 𝐒𝐄 𝐀𝐋𝐋 𝐂𝐌𝐃 𝐌𝐘 𝐎𝐖𝐍𝐄𝐑 𝐏𝐀𝐑𝐒𝐎𝐍𝐀𝐋 𝐁𝐎𝐓 "
+        "𝐓𝐇𝐀𝐍𝐊𝐒 𝐅𝐎𝐑 𝐀𝐃𝐃𝐈𝐍𝐆 𝐌𝐄 𝐔𝐒𝐄 -𝐇𝐄𝐋𝐏 𝐓𝐎 𝐒𝐄 𝐀𝐋𝐋 𝐂𝐌𝐃 𝐌𝐘 𝐎𝐖𝐍𝐄𝐑 𝐏𝐀𝐑𝐒𝐎𝐍𝐀𝐋 𝐁𝐎𝐓"
+  
     }
   },
 
@@ -33,513 +30,525 @@ module.exports = {
     if (!threadData.settings.sendWelcomeMessage) return;
 
     const addedMembers = event.logMessageData.addedParticipants;
-    const threadName = threadData.threadName || "our group";
-    const prefix = global.utils.getPrefix(threadID);
-    const inviterID = event.author;
+    const threadName   = threadData.threadName || "our group";
+    const prefix       = global.utils.getPrefix(threadID);
+    const inviterID    = event.author;
 
     for (const user of addedMembers) {
       const userID = user.userFbId;
-      const botID = api.getCurrentUserID();
+      const botID  = api.getCurrentUserID();
 
-      // ✅ যদি বটকে অ্যাড করা হয়
       if (userID == botID) {
-        if (nickNameBot)
-          await api.changeNickname(nickNameBot, threadID, botID);
+        if (nickNameBot) await api.changeNickname(nickNameBot, threadID, botID);
         return message.send(getLang("botAddedMessage", prefix));
       }
 
-      // ✅ যদি নতুন ইউজার হয়
-      const userName = user.fullName;
-      const userTag = `@${userName}`;
+      const userName    = user.fullName;
       const inviterName = await usersData.getName(inviterID);
       const memberCount = event.participantIDs.length;
 
       let { welcomeMessage = getLang("defaultWelcomeMessage") } = threadData.data;
-
       welcomeMessage = welcomeMessage
-        .replace(/\{userName\}/g, userName)
-        .replace(/\{userTag\}/g, userTag)
-        .replace(/\{threadName\}/g, threadName)
+        .replace(/\{userName\}/g,    userName)
+        .replace(/\{userTag\}/g,     userName)
+        .replace(/\{threadName\}/g,  threadName)
         .replace(/\{memberCount\}/g, memberCount)
         .replace(/\{inviterName\}/g, inviterName);
 
-      // Welcome Image Card তৈরি
-      let welcomeImagePath;
+      let welcomeImagePath = null;
       try {
         welcomeImagePath = await createWelcomeCard({
-          userName,
-          userTag,
-          threadName,
-          memberCount,
-          inviterName,
-          newUserID: userID,
-          inviterID: inviterID,
-          threadID: threadID,
-          api: api
+          userName, threadName, memberCount,
+          inviterName, newUserID: userID,
+          inviterID, threadID, api
         });
       } catch (err) {
         console.error("Welcome image creation failed:", err);
-        welcomeImagePath = null;
       }
 
       const form = {
-        body: welcomeMessage,
+        body:     welcomeMessage,
         mentions: [{ tag: userName, id: userID }]
       };
 
-      // ✅ Welcome Image Card অ্যাটাচ
       if (welcomeImagePath && fs.existsSync(welcomeImagePath)) {
         form.attachment = fs.createReadStream(welcomeImagePath);
       } else if (threadData.data.welcomeAttachment) {
-        // পূর্বের অ্যাটাচমেন্ট সিস্টেম
-        const files = threadData.data.welcomeAttachment;
-        const attachments = files.reduce((acc, file) => {
-          acc.push(drive.getFile(file, "stream"));
-          return acc;
-        }, []);
+        const attachments = threadData.data.welcomeAttachment
+          .map(f => drive.getFile(f, "stream"));
         form.attachment = (await Promise.allSettled(attachments))
-          .filter(({ status }) => status == "fulfilled")
+          .filter(({ status }) => status === "fulfilled")
           .map(({ value }) => value);
       }
 
       message.send(form);
-      
-      // Temporary image file delete
+
       if (welcomeImagePath && fs.existsSync(welcomeImagePath)) {
-        setTimeout(() => fs.unlinkSync(welcomeImagePath), 5000);
+        setTimeout(() => { try { fs.unlinkSync(welcomeImagePath); } catch (_) {} }, 5000);
       }
     }
   }
 };
 
-// ✅ Graph API Access Token (আপনার pp কমান্ড থেকে)
 const ACCESS_TOKEN = "6628568379%7Cc1e620fa708a1d5696fb991c1bde5662";
 
 async function downloadHighQualityProfile(userID) {
   try {
-    // Graph API দিয়ে হাই রেজোল্যুশন ইমেজ (500x500)
-    const highResUrl = `https://graph.facebook.com/${userID}/picture?width=500&height=500&access_token=${ACCESS_TOKEN}`;
-    const response = await axios({
-      method: 'GET',
-      url: highResUrl,
-      responseType: 'arraybuffer',
-      timeout: 10000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
-    return Buffer.from(response.data, 'binary');
-  } catch (error) {
-    console.log(`Graph API failed for user ${userID}:`, error.message);
-    return null;
-  }
+    const url = `https://graph.facebook.com/${userID}/picture?width=500&height=500&access_token=${ACCESS_TOKEN}`;
+    const res = await axios({ method: 'GET', url, responseType: 'arraybuffer', timeout: 10000 });
+    return Buffer.from(res.data, 'binary');
+  } catch { return null; }
 }
 
 async function downloadImage(url) {
   try {
-    const response = await axios({
-      method: 'GET',
-      url: url,
-      responseType: 'arraybuffer',
-      timeout: 10000
-    });
-    return Buffer.from(response.data, 'binary');
-  } catch (error) {
-    console.log("Image download failed:", error.message);
-    return null;
-  }
+    const res = await axios({ method: 'GET', url, responseType: 'arraybuffer', timeout: 10000 });
+    return Buffer.from(res.data, 'binary');
+  } catch { return null; }
 }
 
 async function getGroupImage(threadID, api) {
   try {
-    const threadInfo = await api.getThreadInfo(threadID);
-    if (threadInfo.imageSrc) {
-      const response = await axios({
-        method: 'GET',
-        url: threadInfo.imageSrc,
-        responseType: 'arraybuffer',
-        timeout: 10000
-      });
-      return Buffer.from(response.data, 'binary');
+    const info = await api.getThreadInfo(threadID);
+    if (info.imageSrc) {
+      const res = await axios({ method: 'GET', url: info.imageSrc, responseType: 'arraybuffer', timeout: 10000 });
+      return Buffer.from(res.data, 'binary');
     }
-  } catch (error) {
-    console.log("Group image download failed:", error.message);
-  }
+  } catch {}
   return null;
 }
 
-async function createWelcomeCard({ userName, userTag, threadName, memberCount, inviterName, newUserID, inviterID, threadID, api }) {
-  const width = 1200;
-  const height = 675;
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext('2d');
+function unicodeToPlain(str) {
+  if (!str) return '';
 
-  // ✅ Elegant Dark Background
-  const gradient = ctx.createLinearGradient(0, 0, width, height);
-  gradient.addColorStop(0, '#0c0c0c');
-  gradient.addColorStop(0.3, '#1a1a2e');
-  gradient.addColorStop(0.7, '#16213e');
-  gradient.addColorStop(1, '#0f3460');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, width, height);
+  const ranges = [
+    [0x1D400, 0x1D419, 'A'], [0x1D41A, 0x1D433, 'a'],
+    [0x1D434, 0x1D44D, 'A'], [0x1D44E, 0x1D467, 'a'],
+    [0x1D468, 0x1D481, 'A'], [0x1D482, 0x1D49B, 'a'],
+    [0x1D5D4, 0x1D5ED, 'A'], [0x1D5EE, 0x1D607, 'a'],
+    [0x1D63C, 0x1D655, 'A'], [0x1D656, 0x1D66F, 'a'],
+    [0x1D7CE, 0x1D7D7, '0'],
+    [0xFF21, 0xFF3A, 'A'], [0xFF41, 0xFF5A, 'a'],
+    [0xFF10, 0xFF19, '0'],
+    [0x24B6, 0x24CF, 'A'], [0x24D0, 0x24E9, 'a'],
+  ];
 
-  // ✅ Background Pattern (Subtle)
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
-  for (let i = 0; i < 100; i++) {
-    const x = Math.random() * width;
-    const y = Math.random() * height;
-    const size = Math.random() * 3 + 1;
-    ctx.beginPath();
-    ctx.arc(x, y, size, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  const singles = {
+    0x1D49C: 'A', 0x212C: 'B', 0x2102: 'C', 0x2145: 'D',
+    0x2130: 'E', 0x2131: 'F', 0x210A: 'g', 0x210B: 'H',
+    0x2110: 'I', 0x2111: 'I', 0x2112: 'L', 0x2113: 'l',
+    0x2115: 'N', 0x2118: 'P', 0x211A: 'Q', 0x211B: 'R',
+    0x211C: 'R', 0x2124: 'Z', 0x2128: 'Z',
+    0x2070: '0', 0x00B9: '1', 0x00B2: '2', 0x00B3: '3',
+    0x2074: '4', 0x2075: '5', 0x2076: '6', 0x2077: '7',
+    0x2078: '8', 0x2079: '9',
+  };
 
-  // ✅ Top decorative line
-  ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(width * 0.1, 90);
-  ctx.lineTo(width * 0.9, 90);
-  ctx.stroke();
+  let result = '';
+  for (const char of str) {
+    const cp = char.codePointAt(0);
 
-  // ✅ Main Title - Welcome To
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 60px "Segoe UI", Arial';
-  ctx.textAlign = 'center';
-  ctx.shadowColor = 'rgba(255, 215, 0, 0.5)';
-  ctx.shadowBlur = 12;
-  ctx.fillText('Welcome To', width / 2, 160);
-  ctx.shadowBlur = 0;
+    if (singles[cp] !== undefined) {
+      result += singles[cp];
+      continue;
+    }
 
-  // ✅ Top Section - User & Inviter Profiles
-  const topY = 250;
-  const profileSize = 70;
-  const leftX = width * 0.25;
-  const rightX = width * 0.75;
-
-  // ✅ Left Side - New User Section
-  // New User Profile Frame (Green)
-  ctx.beginPath();
-  ctx.arc(leftX, topY, profileSize + 8, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(46, 204, 113, 0.15)';
-  ctx.fill();
-  ctx.strokeStyle = '#2ecc71';
-  ctx.lineWidth = 4;
-  ctx.stroke();
-
-  // Load new user profile with HIGH QUALITY Graph API
-  let newUserImage = null;
-  if (newUserID) {
-    try {
-      // প্রথমে Graph API দিয়ে চেষ্টা করবে
-      const imageBuffer = await downloadHighQualityProfile(newUserID);
-      if (imageBuffer) {
-        newUserImage = await loadImage(imageBuffer);
-      } else {
-        // Fallback: FB API থাম্বনেইল
-        try {
-          const profilePic = await api.getUserInfo([newUserID]);
-          if (profilePic[newUserID] && profilePic[newUserID].thumbSrc) {
-            const fallbackBuffer = await downloadImage(profilePic[newUserID].thumbSrc);
-            if (fallbackBuffer) {
-              newUserImage = await loadImage(fallbackBuffer);
-            }
-          }
-        } catch (fallbackErr) {
-          console.log("Fallback also failed for new user:", fallbackErr.message);
-        }
+    let mapped = false;
+    for (const [start, end, base] of ranges) {
+      if (cp >= start && cp <= end) {
+        const baseCode = base.codePointAt(0);
+        result += String.fromCodePoint(baseCode + (cp - start));
+        mapped = true;
+        break;
       }
-    } catch (err) {
-      console.log("New user image load failed:", err.message);
     }
+
+    if (!mapped) result += char;
   }
-
-  if (newUserImage) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(leftX, topY, profileSize, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.clip();
-    
-    // HQ ইমেজের জন্য স্মুথ ড্রয়িং
-    ctx.drawImage(
-      newUserImage, 
-      leftX - profileSize, 
-      topY - profileSize, 
-      profileSize * 2, 
-      profileSize * 2
-    );
-    ctx.restore();
-  } else {
-    // Default avatar for new user
-    ctx.fillStyle = '#333344';
-    ctx.beginPath();
-    ctx.arc(leftX, topY, profileSize, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 45px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('👤', leftX, topY + 15);
-  }
-
-  // "NEW USER" Label
-  ctx.fillStyle = '#2ecc71';
-  ctx.font = 'bold 24px "Segoe UI", Arial';
-  ctx.fillText('NEW USER', leftX, topY + profileSize + 40);
-
-  // New User Name (with text wrapping if too long)
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 28px "Segoe UI", Arial';
-  
-  // Truncate long names
-  let displayName = userName;
-  const maxNameLength = 18;
-  if (userName.length > maxNameLength) {
-    displayName = userName.substring(0, maxNameLength) + '...';
-  }
-  ctx.fillText(displayName, leftX, topY + profileSize + 75);
-
-  // ✅ Right Side - Added By Section
-  // Added By Profile Frame (Blue)
-  ctx.beginPath();
-  ctx.arc(rightX, topY, profileSize + 8, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(52, 152, 219, 0.15)';
-  ctx.fill();
-  ctx.strokeStyle = '#3498db';
-  ctx.lineWidth = 4;
-  ctx.stroke();
-
-  // Load inviter profile with HIGH QUALITY Graph API
-  let inviterImage = null;
-  if (inviterID) {
-    try {
-      // প্রথমে Graph API দিয়ে চেষ্টা করবে
-      const imageBuffer = await downloadHighQualityProfile(inviterID);
-      if (imageBuffer) {
-        inviterImage = await loadImage(imageBuffer);
-      } else {
-        // Fallback: FB API থাম্বনেইল
-        try {
-          const profilePic = await api.getUserInfo([inviterID]);
-          if (profilePic[inviterID] && profilePic[inviterID].thumbSrc) {
-            const fallbackBuffer = await downloadImage(profilePic[inviterID].thumbSrc);
-            if (fallbackBuffer) {
-              inviterImage = await loadImage(fallbackBuffer);
-            }
-          }
-        } catch (fallbackErr) {
-          console.log("Fallback also failed for inviter:", fallbackErr.message);
-        }
-      }
-    } catch (err) {
-      console.log("Inviter image load failed:", err.message);
-    }
-  }
-
-  if (inviterImage) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(rightX, topY, profileSize, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.clip();
-    
-    // HQ ইমেজের জন্য স্মুথ ড্রয়িং
-    ctx.drawImage(
-      inviterImage, 
-      rightX - profileSize, 
-      topY - profileSize, 
-      profileSize * 2, 
-      profileSize * 2
-    );
-    ctx.restore();
-  } else {
-    // Default avatar for inviter
-    ctx.fillStyle = '#333344';
-    ctx.beginPath();
-    ctx.arc(rightX, topY, profileSize, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 45px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('👤', rightX, topY + 15);
-  }
-
-  // "ADDED BY" Label
-  ctx.fillStyle = '#3498db';
-  ctx.font = 'bold 24px "Segoe UI", Arial';
-  ctx.fillText('ADDED BY', rightX, topY + profileSize + 40);
-
-  // Added By Name (with text wrapping)
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 28px "Segoe UI", Arial';
-  
-  // Truncate long names
-  let displayInviterName = inviterName;
-  if (inviterName.length > maxNameLength) {
-    displayInviterName = inviterName.substring(0, maxNameLength) + '...';
-  }
-  ctx.fillText(displayInviterName, rightX, topY + profileSize + 75);
-
-  // ✅ Connecting Lines with Arrow
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([8, 4]);
-  
-  // Connecting line from New User to Added By
-  ctx.beginPath();
-  ctx.moveTo(leftX + profileSize + 10, topY);
-  ctx.lineTo(rightX - profileSize - 10, topY);
-  ctx.stroke();
-  
-  ctx.setLineDash([]);
-
-  // Arrow pointing from Added By side (indicating direction)
-  ctx.fillStyle = '#3498db';
-  ctx.beginPath();
-  ctx.moveTo(rightX - profileSize - 25, topY);
-  ctx.lineTo(rightX - profileSize - 40, topY - 10);
-  ctx.lineTo(rightX - profileSize - 40, topY + 10);
-  ctx.closePath();
-  ctx.fill();
-
-  // ✅ Middle Section - Group Info
-  const groupY = 420;
-  const centerX = width / 2;
-  const groupImageSize = 80;
-
-  // Group Image Frame
-  ctx.beginPath();
-  ctx.arc(centerX, groupY, groupImageSize + 10, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(0, 200, 255, 0.15)';
-  ctx.fill();
-  ctx.strokeStyle = '#00c8ff';
-  ctx.lineWidth = 4;
-  ctx.stroke();
-
-  // Load group image
-  let groupImage = null;
-  if (threadID) {
-    try {
-      const imageBuffer = await getGroupImage(threadID, api);
-      if (imageBuffer) {
-        groupImage = await loadImage(imageBuffer);
-      }
-    } catch (err) {
-      console.log("Group image load failed:", err.message);
-    }
-  }
-
-  if (groupImage) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(centerX, groupY, groupImageSize, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.clip();
-    ctx.drawImage(groupImage, centerX - groupImageSize, groupY - groupImageSize, groupImageSize * 2, groupImageSize * 2);
-    ctx.restore();
-  } else {
-    // Default group icon
-    ctx.fillStyle = '#2d3436';
-    ctx.beginPath();
-    ctx.arc(centerX, groupY, groupImageSize, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 60px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('👥', centerX, groupY + 20);
-  }
-
-  // ✅ Group Name (Single Line with Auto Font Size Adjustment)
-  let displayGroupName = threadName;
-  const maxWidth = width * 0.8; // 80% of image width
-  
-  // Start with larger font size
-  let fontSize = 32;
-  let actualWidth;
-  
-  // Calculate text width and reduce font size if needed
-  do {
-    ctx.font = `bold ${fontSize}px "Segoe UI", Arial`;
-    actualWidth = ctx.measureText(displayGroupName).width;
-    if (actualWidth > maxWidth && fontSize > 20) {
-      fontSize -= 2;
-    } else {
-      break;
-    }
-  } while (actualWidth > maxWidth && fontSize > 20);
-  
-  // If still too long, truncate with ellipsis
-  if (actualWidth > maxWidth) {
-    let truncatedName = threadName;
-    while (ctx.measureText(truncatedName + '...').width > maxWidth && truncatedName.length > 1) {
-      truncatedName = truncatedName.substring(0, truncatedName.length - 1);
-    }
-    displayGroupName = truncatedName + '...';
-  }
-
-  // Draw group name
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `bold ${fontSize}px "Segoe UI", Arial`;
-  ctx.fillText(displayGroupName, centerX, groupY + groupImageSize + 50);
-
-  // ✅ Member Count Section
-  const memberY = 570;
-  const boxWidth = 500;
-  const boxHeight = 50;
-  const boxX = (width - boxWidth) / 2;
-  const boxY = memberY;
-  
-  // Member Count Box Background
-  ctx.fillStyle = 'rgba(155, 89, 182, 0.2)';
-  ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
-  
-  // Member Count Box Border
-  ctx.strokeStyle = '#9b59b6';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
-  
-  // Member Count Text (with ordinal suffix)
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 32px "Segoe UI", Arial';
-  
-  let suffix = "th";
-  if (memberCount % 10 === 1 && memberCount % 100 !== 11) suffix = "st";
-  else if (memberCount % 10 === 2 && memberCount % 100 !== 12) suffix = "nd";
-  else if (memberCount % 10 === 3 && memberCount % 100 !== 13) suffix = "rd";
-  
-  const memberText = `You are the ${memberCount}${suffix} Member`;
-  ctx.fillText(memberText, width / 2, boxY + 35);
-
-  // ✅ Separator Line between Group and Member Count
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(width * 0.2, memberY - 20);
-  ctx.lineTo(width * 0.8, memberY - 20);
-  ctx.stroke();
-
-  // ✅ Bottom decorative line
-  ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(width * 0.1, height - 40);
-  ctx.lineTo(width * 0.9, height - 40);
-  ctx.stroke();
-
-  // ✅ Footer Text
-  ctx.fillStyle = '#aaaaaa';
-  ctx.font = '20px "Segoe UI", Arial';
-  ctx.fillText('Enjoy your stay in our community!', width / 2, height - 15);
-
-  // ✅ Border
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(10, 10, width - 20, height - 20);
-
-  // ✅ Save image
-  const tempPath = path.join(__dirname, `temp_welcome_${Date.now()}.png`);
-  const buffer = canvas.toBuffer('image/png');
-  await fs.writeFile(tempPath, buffer);
-  
-  return tempPath;
+  return result;
 }
+
+function safeStr(str) {
+  if (!str) return '';
+  try { return Buffer.from(str, 'latin1').toString('utf8'); } catch { return str; }
+}
+
+function readableText(str) {
+  return unicodeToPlain(safeStr(str));
+}
+
+function ordinal(n) {
+  const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function drawCircleAvatar(ctx, img, cx, cy, r) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.clip();
+  ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2);
+  ctx.restore();
+}
+
+function fitText(ctx, text, maxPx, maxSize = 34, minSize = 14, bold = true) {
+  let t = text;
+  let size = maxSize;
+  const w = bold ? 'bold' : '400';
+  ctx.font = `${w} ${size}px "Segoe UI", Arial`;
+  while (ctx.measureText(t).width > maxPx && size > minSize) {
+    size--;
+    ctx.font = `${w} ${size}px "Segoe UI", Arial`;
+  }
+  if (ctx.measureText(t).width > maxPx) {
+    while (ctx.measureText(t + '…').width > maxPx && t.length > 1) t = t.slice(0, -1);
+    t += '…';
+  }
+  return { text: t, size };
+}
+
+async function createWelcomeCard({
+  userName, threadName, memberCount,
+  inviterName, newUserID, inviterID, threadID, api
+}) {
+  const W = 1200, H = 630;
+  const canvas = createCanvas(W, H);
+  const ctx    = canvas.getContext('2d');
+
+  async function loadProfile(uid) {
+    const buf = await downloadHighQualityProfile(uid);
+    if (buf) return loadImage(buf).catch(() => null);
+    try {
+      const info = await api.getUserInfo([uid]);
+      const src  = info[uid]?.thumbSrc;
+      if (src) { const b2 = await downloadImage(src); if (b2) return loadImage(b2).catch(() => null); }
+    } catch {}
+    return null;
+  }
+
+  const [newUserImg, inviterImg, groupImg] = await Promise.all([
+    loadProfile(newUserID),
+    loadProfile(inviterID),
+    getGroupImage(threadID, api).then(b => b ? loadImage(b).catch(() => null) : null)
+  ]);
+
+  const safeUser    = readableText(userName);
+  const safeInviter = readableText(inviterName);
+  const safeGroup   = readableText(threadName);
+
+  ctx.fillStyle = '#09090f';
+  ctx.fillRect(0, 0, W, H);
+
+  const rng = s => { let x = Math.sin(s) * 10000; return x - Math.floor(x); };
+  ctx.fillStyle = 'rgba(255,255,255,0.014)';
+  for (let i = 0; i < 280; i++) {
+    ctx.beginPath();
+    ctx.arc(rng(i * 2.3) * W, rng(i * 4.7) * H, rng(i * 7.1) * 1.3 + 0.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const splitX = Math.round(W * 0.385);
+  const PAD    = 44;  
+
+  ctx.fillStyle = '#0d0d16';
+  ctx.fillRect(0, 0, splitX, H);
+
+  {
+    const g = ctx.createLinearGradient(splitX - 1, 0, splitX + 28, 0);
+    g.addColorStop(0, 'rgba(255,255,255,0.10)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(splitX - 1, 0, 30, H);
+  }
+
+  {
+    const lh = H * 0.52, ly = (H - lh) / 2;
+    const g  = ctx.createLinearGradient(0, ly, 0, ly + lh);
+    g.addColorStop(0,   'rgba(46,204,113,0)');
+    g.addColorStop(0.4, 'rgba(46,204,113,0.8)');
+    g.addColorStop(0.6, 'rgba(46,204,113,0.8)');
+    g.addColorStop(1,   'rgba(46,204,113,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, ly, 3, lh);
+  }
+
+  {
+    const rCX = splitX + (W - splitX) * 0.5;
+    const g   = ctx.createRadialGradient(rCX, H * 0.42, 0, rCX, H * 0.42, 380);
+    g.addColorStop(0, 'rgba(50,110,255,0.055)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(splitX, 0, W - splitX, H);
+  }
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(80,160,255,0.28)'; ctx.shadowBlur = 22;
+  ctx.strokeStyle = 'rgba(80,160,255,0.2)';  ctx.lineWidth  = 2;
+  roundRect(ctx, 6, 6, W - 12, H - 12, 18);
+  ctx.stroke();
+  ctx.restore();
+
+  const leftCX  = splitX / 2;
+  const avatarR = 115;
+  const avatarY = H / 2 - 18;
+
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.font      = '600 17px "Segoe UI", Arial';
+  ctx.fillStyle = 'rgba(46,204,113,0.85)';
+  ctx.letterSpacing = '2px';
+  ctx.fillText('N E W   M E M B E R', leftCX, 50);
+  ctx.restore();
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(46,204,113,0.6)'; ctx.shadowBlur = 32;
+  ctx.strokeStyle = 'rgba(46,204,113,0.9)'; ctx.lineWidth  = 3.5;
+  ctx.beginPath(); ctx.arc(leftCX, avatarY, avatarR + 8, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(leftCX, avatarY, avatarR + 17, 0, Math.PI * 2); ctx.stroke();
+
+  if (newUserImg) {
+    drawCircleAvatar(ctx, newUserImg, leftCX, avatarY, avatarR);
+  } else {
+    ctx.fillStyle = '#161628';
+    ctx.beginPath(); ctx.arc(leftCX, avatarY, avatarR, 0, Math.PI * 2); ctx.fill();
+    ctx.save();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `bold ${Math.round(avatarR * 0.7)}px Arial`;
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fillText('👤', leftCX, avatarY);
+    ctx.restore();
+  }
+
+  {
+    const maxW = splitX - 32;
+    ctx.save();
+    ctx.textAlign = 'center';
+    const { text, size } = fitText(ctx, safeUser, maxW, 34, 15);
+    ctx.font      = `bold ${size}px "Segoe UI", Arial`;
+    ctx.fillStyle = '#f0f0f8';
+    ctx.shadowColor = 'rgba(0,0,0,0.7)'; ctx.shadowBlur = 8;
+    ctx.fillText(text, leftCX, avatarY + avatarR + 40);
+    ctx.restore();
+  }
+
+  {
+    const dy = avatarY + avatarR + 57;
+    const dw = splitX * 0.44;
+    const g  = ctx.createLinearGradient(leftCX - dw / 2, 0, leftCX + dw / 2, 0);
+    g.addColorStop(0, 'transparent'); g.addColorStop(0.5, 'rgba(255,255,255,0.1)'); g.addColorStop(1, 'transparent');
+    ctx.strokeStyle = g; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(leftCX - dw / 2, dy); ctx.lineTo(leftCX + dw / 2, dy); ctx.stroke();
+  }
+
+  {
+    const bText = `✦  ${ordinal(memberCount)} Member  ✦`;
+    ctx.save();
+    ctx.font = 'bold 17px "Segoe UI", Arial';
+    ctx.textAlign = 'center';
+    const bw = ctx.measureText(bText).width + 32;
+    const bh = 36, bx = leftCX - bw / 2, by = avatarY + avatarR + 70;
+
+    const bg = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+    bg.addColorStop(0, 'rgba(46,204,113,0.07)');
+    bg.addColorStop(0.5, 'rgba(46,204,113,0.20)');
+    bg.addColorStop(1, 'rgba(46,204,113,0.07)');
+    ctx.fillStyle = bg;
+    roundRect(ctx, bx, by, bw, bh, 9); ctx.fill();
+
+    ctx.strokeStyle = 'rgba(46,204,113,0.5)'; ctx.lineWidth = 1.5;
+    roundRect(ctx, bx, by, bw, bh, 9); ctx.stroke();
+
+    ctx.fillStyle = 'rgba(46,204,113,0.92)';
+    ctx.fillText(bText, leftCX, by + 24);
+    ctx.restore();
+  }
+
+  const rX     = splitX + PAD;
+  const rRight = W - PAD;         
+  const rW     = rRight - rX;     
+
+  ctx.save();
+  ctx.textAlign = 'left';
+  ctx.font      = 'bold 40px "Segoe UI", Arial';
+  const wGrad = ctx.createLinearGradient(rX, 0, rX + 500, 0);
+  wGrad.addColorStop(0, '#ffffff');
+  wGrad.addColorStop(1, 'rgba(255,255,255,0.55)');
+  ctx.fillStyle   = wGrad;
+  ctx.shadowColor = 'rgba(255,255,255,0.15)'; ctx.shadowBlur = 12;
+  ctx.fillText('Welcome To Our Group', rX, 90);
+  ctx.restore();
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(100,200,255,0.8)'; ctx.shadowBlur = 10;
+  ctx.strokeStyle = 'rgba(100,200,255,0.8)'; ctx.lineWidth  = 3;
+  ctx.beginPath(); ctx.moveTo(rX, 102); ctx.lineTo(rX + 130, 102); ctx.stroke();
+  ctx.restore();
+
+  const groupSecY = 155;
+  const gAvSize   = 90;   
+
+  ctx.save();
+  ctx.textAlign = 'left'; ctx.font = '500 12px "Segoe UI", Arial';
+  ctx.fillStyle = 'rgba(0,200,255,0.55)';
+  ctx.fillText('G R O U P', rX, groupSecY);
+  ctx.restore();
+
+  const gAx = rX, gAy = groupSecY + 14;
+
+  if (groupImg) {
+    ctx.save();
+    roundRect(ctx, gAx, gAy, gAvSize, gAvSize, 16);
+    ctx.clip();
+    ctx.drawImage(groupImg, gAx, gAy, gAvSize, gAvSize);
+    ctx.restore();
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0,200,255,0.5)'; ctx.lineWidth = 2.5;
+    roundRect(ctx, gAx, gAy, gAvSize, gAvSize, 16); ctx.stroke();
+    ctx.restore();
+  } else {
+    ctx.fillStyle = '#161628';
+    roundRect(ctx, gAx, gAy, gAvSize, gAvSize, 16); ctx.fill();
+    ctx.save();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '44px Arial'; ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fillText('🏠', gAx + gAvSize / 2, gAy + gAvSize / 2);
+    ctx.restore();
+  }
+
+  {
+    const gTx  = gAx + gAvSize + 20;
+    const gTw  = rRight - gTx;          
+    const gTcY = gAy + gAvSize / 2;     
+
+    ctx.save();
+    ctx.textAlign = 'left';
+    const { text: gn, size: gs } = fitText(ctx, safeGroup, gTw, 34, 14);
+    ctx.font      = `bold ${gs}px "Segoe UI", Arial`;
+    ctx.fillStyle = '#e8e8f2';
+    ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 6;
+    ctx.fillText(gn, gTx, gTcY + gs * 0.35);
+    ctx.restore();
+  }
+
+  {
+    const sy = gAy + gAvSize + 22;
+    const g  = ctx.createLinearGradient(rX, 0, rRight, 0);
+    g.addColorStop(0, 'rgba(255,255,255,0.10)');
+    g.addColorStop(0.7, 'rgba(255,255,255,0.03)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.strokeStyle = g; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(rX, sy); ctx.lineTo(rRight, sy); ctx.stroke();
+  }
+
+  const invSecY  = gAy + gAvSize + 40;
+  const invAvR   = 52;  
+
+  ctx.save();
+  ctx.textAlign = 'left'; ctx.font = '500 12px "Segoe UI", Arial';
+  ctx.fillStyle = 'rgba(255,215,0,0.5)';
+  ctx.fillText('A D D E D   B Y', rX, invSecY);
+  ctx.restore();
+
+  const invAy  = invSecY + 14;
+  const invCX  = rX + invAvR;
+  const invCY  = invAy + invAvR;
+
+  if (inviterImg) {
+    ctx.save();
+    ctx.shadowColor = 'rgba(255,215,0,0.4)'; ctx.shadowBlur = 18;
+    ctx.strokeStyle = 'rgba(255,215,0,0.65)'; ctx.lineWidth  = 2.5;
+    ctx.beginPath(); ctx.arc(invCX, invCY, invAvR + 4, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+    drawCircleAvatar(ctx, inviterImg, invCX, invCY, invAvR);
+  } else {
+    ctx.fillStyle = '#161628';
+    ctx.beginPath(); ctx.arc(invCX, invCY, invAvR, 0, Math.PI * 2); ctx.fill();
+    ctx.save();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '34px Arial'; ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fillText('👤', invCX, invCY);
+    ctx.restore();
+  }
+
+  {
+    const iTx = invCX + invAvR + 20;
+    const iTw = rRight - iTx;
+    ctx.save();
+    ctx.textAlign = 'left';
+    const { text: iname, size: is } = fitText(ctx, safeInviter, iTw, 34, 14);
+    ctx.font      = `bold ${is}px "Segoe UI", Arial`;
+    ctx.fillStyle = '#e8e8f2';
+    ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 6;
+    ctx.fillText(iname, iTx, invCY + is * 0.35);
+    ctx.restore();
+  }
+
+  {
+    const blockY = invAy + invAvR * 2 + 32;
+    const blockH = H - blockY - 44;  
+
+    {
+      const g = ctx.createLinearGradient(rX, 0, rRight, 0);
+      g.addColorStop(0, 'rgba(255,255,255,0.10)');
+      g.addColorStop(0.7, 'rgba(255,255,255,0.03)');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.strokeStyle = g; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(rX, blockY - 10); ctx.lineTo(rRight, blockY - 10); ctx.stroke();
+    }
+
+    const pillG = ctx.createLinearGradient(rX, blockY, rRight, blockY + blockH);
+    pillG.addColorStop(0, 'rgba(255,255,255,0.03)');
+    pillG.addColorStop(1, 'rgba(255,255,255,0.01)');
+    ctx.fillStyle = pillG;
+    roundRect(ctx, rX, blockY, rRight - rX, blockH, 14); ctx.fill();
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+    roundRect(ctx, rX, blockY, rRight - rX, blockH, 14); ctx.stroke();
+    ctx.restore();
+
+    const cx = rX + (rRight - rX) / 2;
+    const cy = blockY + blockH / 2;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 22px "Segoe UI", Arial';
+    const pGrad = ctx.createLinearGradient(cx - 120, 0, cx + 120, 0);
+    pGrad.addColorStop(0, 'rgba(255,255,255,0.55)');
+    pGrad.addColorStop(0.4, 'rgba(255,255,255,0.9)');
+    pGrad.addColorStop(0.65, 'rgba(100,200,255,1)');
+    pGrad.addColorStop(1, 'rgba(46,204,113,1)');
+    ctx.fillStyle = pGrad;
+    ctx.shadowColor = 'rgba(100,200,255,0.55)'; ctx.shadowBlur = 16;
+    ctx.fillText('Powered By EryXenX', cx, cy + 8);
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.textAlign = 'right'; ctx.font = '400 14px "Segoe UI", Arial';
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillText('Enjoy your stay ✨', W - 28, H - 20);
+  ctx.restore();
+
+  const tempPath = path.join(__dirname, `temp_welcome_${Date.now()}.png`);
+  await fs.writeFile(tempPath, canvas.toBuffer('image/png'));
+  return tempPath;
+  }
