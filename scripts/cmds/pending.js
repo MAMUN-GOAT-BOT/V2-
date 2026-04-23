@@ -4,7 +4,7 @@ module.exports = {
   config: {
     name: "pending",
     version: "2.3",
-    author: "〲MAMUNツ࿐ T.T　o.O",
+    author: "xalman",
     countDown: 5,
     role: 2,
     shortDescription: { en: "Manage pending group requests" },
@@ -59,7 +59,7 @@ module.exports = {
         done++;
       }
 
-      rturn api.sendMessage(
+      return api.sendMessage(
         getLang("refused", done, dateTime),
         threadID,
         messageID
@@ -79,7 +79,7 @@ module.exports = {
 │ 🤖 Bot : Activated
 │ 🔗 Prefix : ${prefix}
 │ ⚡ Owner : 𝐌𝐀𝐌𝐔𝐍
-│ ⏰ Date/Time : ${dateTime}
+│ ⏰ Date/Time : ${dateTime} 
 ╰─✅ Access Granted─╯`,
         targetThreadID
       );
