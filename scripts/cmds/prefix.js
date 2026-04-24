@@ -7,7 +7,7 @@ module.exports = {
     version: "2.4",
     author: "MAMUN",
     countDown: 5,
-    role: 0,
+    role: 2,
     description: "Change & show bot prefix",
     category: "config"
   },
