@@ -1,21 +1,16 @@
-const fs = require("fs-extra");
-const request = require("request");
-const path = require("path");
-
 module.exports = {
   config: {
     name: "mamun",
-    version: "1.0.3",
+    version: "1.0.4",
     author: "〲MAMUNツ࿐ T.T　o.O",
     role: 0,
-    shortDescription: "Mamun Profile (No Prefix)",
+    shortDescription: "Mamun Profile (No Image)",
     category: "Information",
     guide: {
       en: "type mamun"
     }
   },
 
-  // 👇 এটা না থাকলে error দিবে
   onStart: async function () {},
 
   onChat: async function ({ api, event }) {
@@ -34,38 +29,13 @@ module.exports = {
 ║ 🎮 Hobbies    : Gaming 🎮 | Coding 💻 | Music 🎧
 ╠════════════════════════════════════════╣
 ║ 🔗 Social Links:
-║ • Facebook  : https://www.facebook.com/profile.php?id=61587384024459
+║ • Facebook  : https://m.me/tmmamun007
 ║ • WhatsApp  : 01830981279
-║ • TikTok    : tm.mamun35
+║ • TikTok    : ma.m.un97
 ╠════════════════════════════════════════╣
 ║ 🎯 Game      : Free Fire 🔫
 ╚════════════════════════════════════════╝`;
 
-    const cacheDir = path.join(__dirname, "cache");
-    const imgPath = path.join(cacheDir, "mamun.jpg");
-
-    if (!fs.existsSync(cacheDir)) {
-      fs.mkdirSync(cacheDir);
-    }
-
-    const imgLink = "https://i.imgur.com/P0SDyl9.jpeg";
-
-    const send = () => {
-      api.sendMessage(
-        {
-          body: profileText,
-          attachment: fs.createReadStream(imgPath)
-        },
-        event.threadID,
-        () => fs.unlinkSync(imgPath),
-        event.messageID
-      );
-    };
-
-    request(encodeURI(imgLink))
-      .pipe(fs.createWriteStream(imgPath))
-      .on("close", send)
-      .on("error", () => {
-        api.sendMessage("❌ Image load failed!", event.threadID, event.messageID);
-      });
-  
+    api.sendMessage(profileText, event.threadID, event.messageID);
+  }
+};
