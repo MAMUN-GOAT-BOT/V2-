@@ -24,12 +24,12 @@ module.exports = {
 ║ 🌟 Name       : 〲MAMUNツ࿐ T.T　o.O
 ║ 🎂 Age        : 20
 ║ 🆔 FF ID      : 3246615019
-║ 💌 Status     : Mingle
+║ 💌 Status     : single
 ║ 📍 Location   : Khulna, Bangladesh
 ║ 🎮 Hobbies    : Gaming 🎮 | Coding 💻 | Music 🎧
 ╠════════════════════════════════════════╣
 ║ 🔗 Social Links:
-║ • Facebook  : https://m.me/tmmamun007
+║ • Facebook  : https://www.facebook.com/profile.php?id=61589546816594
 ║ • WhatsApp  : 01830981279
 ║ • TikTok    : ma.m.un97
 ╠════════════════════════════════════════╣
