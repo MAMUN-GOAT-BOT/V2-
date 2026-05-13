@@ -2,48 +2,86 @@ module.exports = {
   config: {
     name: "fbinfo",
     aliases: ["fb", "userinfo"],
-    version: "1.1",
-    author: "Mamun",
+    version: "4.0",
+    author: "〲MAMUNツ࿐ T.T　o.O",
     role: 0,
     shortDescription: "Facebook user info",
-    longDescription: "Get Facebook user info safely",
+    longDescription: "Get Facebook user information safely",
     category: "info",
-    guide: "{p}fbinfo @mention | uid"
+    guide: "{pn} @mention / uid"
   },
 
   onStart: async function ({ api, event, args, message }) {
     try {
       let uid = event.senderID;
 
-      if (Object.keys(event.mentions || {}).length > 0) {
+      // Mention user
+      if (event.mentions && Object.keys(event.mentions).length > 0) {
         uid = Object.keys(event.mentions)[0];
-      } else if (args[0] && !isNaN(args[0])) {
+      }
+
+      // UID input
+      else if (args[0] && !isNaN(args[0])) {
         uid = args[0];
       }
 
-      const data = await api.getUserInfo(uid);
-      const user = data[uid];
+      // Get user info
+      const userInfo = await api.getUserInfo(uid);
 
-      if (!user) return message.reply("❌ User info not found");
+      if (!userInfo || !userInfo[uid]) {
+        return message.reply("❌ | User info not found.");
+      }
 
-      const gender =
-        user.gender == 1 ? "Female" :
-        user.gender == 2 ? "Male" : "Unknown";
+      const user = userInfo[uid];
 
-      return message.reply(
-`📘 INFO
+      // Username
+      let username = user.vanity || "Not set";
+
+      // Gender Fix
+      let gender = "Unknown";
+
+      // Female
+      if (
+        user.gender == 1 ||
+        user.gender == "1" ||
+        String(user.gender).toLowerCase() == "female"
+      ) {
+        gender = "Female";
+      }
+
+      // Male
+      else if (
+        user.gender == 2 ||
+        user.gender == "2" ||
+        String(user.gender).toLowerCase() == "male"
+      ) {
+        gender = "Male";
+      }
+
+      // Final Message
+      const msg = `
+╭─❍ FACEBOOK INFO ❍─╮
 
 👤 Name: ${user.name || "Unknown"}
 🆔 UID: ${uid}
-👤 Username: ${user.vanity || "Not set"}
+🌐 Username: ${username}
 🚻 Gender: ${gender}
-🔗 Profile: https://facebook.com/${uid}
+🔗 Profile:
+https://facebook.com/${uid}
 
-✰𝗣𝗢𝗢𝗞𝗜𝗘☆𝘾𝙃𝘼𝙏☆𝘽𝙊𝙏✰`
+╰─✦ 𝗣𝗢𝗢𝗞𝗜𝗘 𝗖𝗛𝗔𝗧 𝗕𝗢𝗧 ✦─╯
+`;
+
+      return message.reply(msg);
+
+    } catch (error) {
+      console.log(error);
+
+      return message.reply(
+`⚠️ FBINFO ERROR
+
+${error.message || "Unknown error"}`
       );
-
-    } catch (err) {
-      return message.reply("⚠️ Error: fbinfo install version failed");
     }
   }
 };
