@@ -46,7 +46,7 @@ module.exports = {
 			case "add":
 			case "-a": {
 				if (!isOwner)
-					return message.reply("❌ | Only 〲MAMUNツ࿐ T.T　o.O can add operator.");
+					return message.reply("❌ ᴏɴʟʏ ᴍᴀɪɴ ᴀᴅᴍɪɴ ᴀᴅᴅ  ᴏᴘᴇʀᴀᴛᴏʀ.");
 
 				let uids = [];
 				if (event.type === "message_reply") {
@@ -96,7 +96,7 @@ module.exports = {
 			case "remove":
 			case "-r": {
 				if (!isOwner)
-					return message.reply("❌ | Only 〲MAMUNツ࿐ T.T　o.O can remove operator.");
+					return message.reply("❌ ᴏɴʟʏ ᴍᴀɪɴ ᴀᴅᴍɪɴ ʀᴡᴍᴏᴠᴇ ᴏᴘᴇʀᴀᴛᴏʀ .");
 
 				let uids = [];
 
@@ -152,17 +152,20 @@ module.exports = {
 				);
 
 				const ownerBox =
-`╭━━━〔 👑 OWNER 〕━━━╮
-│ Name : 〲MAMUNツ࿐ T.T　o.O
-│ UID  : ${OWNER.join(", ")}
-╰━━━━━━━━━━━━━━━━━━━━╯`;
+` ᴍᴀɪɴ ᴀᴅᴍɪɴ 
+ 
+𝑴𝑨𝑴𝑼𝑵 𝑩𝑩𝒁
+
+ᴏᴡɴᴇʀ ᴜɪᴅ ☺︎︎ 
+  ♡︎ ${OWNER.join(", ")}
+••••••••••••••••• `;
 
 				const operatorsBox =
-`╭━━〔 🛠 OPERATOR LIST 〕━━╮
+`𝑨𝑫𝑴𝑰𝑵 𝑳𝑰𝑺𝑻  ⚠︎ 
+
 ${getNames.length > 0
-	? getNames.map(i => `│ • ${i.name} (${i.uid})`).join("\n")
-	: "│ No Operators Found"}
-╰━━━━━━━━━━━━━━━━━━━━━━╯`;
+	? getNames.map(i => `☠︎︎ ✔︎ ${i.name} (${i.uid})`).join("\n")
+	: "│ No Operators Found"}`;
 
 				return message.reply(ownerBox + "\n\n" + operatorsBox);
 			}
