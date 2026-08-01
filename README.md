@@ -95,11 +95,7 @@
 </p>
 
 ---
-# Contribution
 
-<p align="center">
-
-<img src="https://raw.githubusercontent.com/MAMUN-GOAT-BOT/MAMUN-GOAT-BOT/output/github-contribution-grid-snake.svg" alt="Snake Animation"/>
 
 </p>
 
